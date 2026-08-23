@@ -1,0 +1,12 @@
+# Normalise line endings in the repository regardless of the OS a
+# contributor is on. Without this, files authored on Windows land in git with
+# CRLF and every later diff from a Linux machine shows the whole file as
+# changed.
+* text=auto eol=lf
+
+# Binary assets must never be normalised - doing so corrupts them.
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff  binary
+*.woff2 binary

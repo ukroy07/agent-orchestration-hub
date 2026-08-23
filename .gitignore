@@ -1,0 +1,13 @@
+# OS cruft
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# Per-service ignores live in agenthub-backend/.gitignore and
+# agenthub-frontend/.gitignore - keep dependency and secret rules there, so
+# each service stays self-contained if it is ever split into its own repo.
