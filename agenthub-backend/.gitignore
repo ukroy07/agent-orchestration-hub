@@ -1,0 +1,18 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+orchestration-venv/
+.venv/
+venv/
+env/
+.env
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.log
+
+# Local zero-infra dev database (SQLite) + its WAL sidecars
+*.db
+*.db-wal
+*.db-shm
+.DS_Store
