@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { AlertTriangle, Check, Copy, X } from 'lucide-react'
-import Markdown from '../ui/Markdown'
+import Markdown from '../ui/LazyMarkdown'
 
 /**
  * Full task result plus the metrics for that response.

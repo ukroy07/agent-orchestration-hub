@@ -1,6 +1,9 @@
 import React from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import remarkMath from 'remark-math'
+import rehypeKatex from 'rehype-katex'
+import 'katex/dist/katex.min.css'
 
 /**
  * Renders an agent's result as markdown instead of printing the raw markup.
@@ -14,10 +17,16 @@ import remarkGfm from 'remark-gfm'
  * prose plugin, so results match the rest of the app instead of arriving with
  * their own typography.
  *
+ * Math is rendered with KaTeX, because the agents write complexity bounds in
+ * LaTeX (`$O(\alpha(N))$`) constantly and those were showing as literal
+ * dollar signs and backslashes.
+ *
  * Deliberately NOT enabled: raw HTML. `react-markdown` ignores HTML in the
  * source unless `rehype-raw` is added, and that is the right default here -
  * this text comes from a language model, and rendering whatever tags it emits
- * would turn model output into an injection vector.
+ * would turn model output into an injection vector. Note that KaTeX does not
+ * reopen that hole: rehype-katex builds its markup from the parsed math tree,
+ * it does not pass source HTML through.
  */
 
 const components = {
@@ -83,11 +92,36 @@ const components = {
   td: ({ children }) => <td className="border-b border-base-800 px-2 py-1.5 align-top">{children}</td>,
 }
 
+/**
+ * Money is not math.
+ *
+ * remark-math reads any `$...$` pair as inline math, so a sentence like
+ * "the plan costs $5 and the upgrade is $10" parses "5 and the upgrade is"
+ * as a formula and renders it as italic maths variables. Escaping a dollar
+ * that is immediately followed by a digit keeps prices as prices - and costs
+ * nothing, because the notation the agents actually emit - O(1), alpha,
+ * complexity bounds - never opens with a digit.
+ */
+// The replacement is a function, not a string: `$` is special in a
+// replacement pattern ($&, $1 ...), so returning it from a callback is the
+// unambiguous way to emit a literal backslash-dollar.
+const escapeCurrency = (text) => String(text || '').replace(/\$(?=\d)/g, () => '\\$')
+
 export default function Markdown({ children, className = '' }) {
   return (
     <div className={`text-sm text-ink-300 ${className}`}>
-      <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
-        {children || ''}
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm, remarkMath]}
+        rehypePlugins={[
+          // throwOnError:false is essential here rather than optional - this
+          // is model output, so a malformed expression is a matter of time,
+          // and the default would take the whole result panel down with it.
+          // Invalid math renders in the critic colour instead.
+          [rehypeKatex, { throwOnError: false, errorColor: '#F0654D' }],
+        ]}
+        components={components}
+      >
+        {escapeCurrency(children)}
       </ReactMarkdown>
     </div>
   )

@@ -109,6 +109,15 @@ being `thinking`/`action` (→ active) or `handoff`/`evaluation` (→ done).
   This is exactly what happened when the footer was added. Nested `mx-auto`
   elements inside a card are fine; only the direct child of `main` is a flex
   item.
+- The result preview's "is it truncated" check uses a **MutationObserver**,
+  not only a ResizeObserver. `Markdown` is lazily imported, so the first
+  measurement runs against a Suspense placeholder and always says "not
+  truncated"; something has to re-measure once the real content lands.
+  ResizeObserver alone does not cover it - the clipping box is height-capped,
+  so it stops resizing at exactly the moment content grows past it, and RO
+  callbacks are delivered on animation frames, which a backgrounded tab does
+  not produce. Mutation callbacks are microtasks and fire regardless. Remove
+  the MutationObserver and the "Show more" pill silently stops appearing.
 - Agent results are markdown - render them through `components/ui/Markdown.jsx`,
   never as plain text. Raw output shows `### Heading` and ```` ```python ````
   as literal characters. Two things there are deliberate: raw HTML is NOT
@@ -116,7 +125,12 @@ being `thinking`/`action` (→ active) or `handoff`/`evaluation` (→ done).
   rendering its tags would make model output an injection vector; and `code`
   is styled as inline with the `pre` wrapper resetting it, because
   react-markdown v9 dropped the `inline` prop and sniffing for a `language-*`
-  class mis-styles fences opened without a language.
+  class mis-styles fences opened without a language. Math goes through KaTeX,
+  and `escapeCurrency` runs first: remark-math reads any `$...$` pair as a
+  formula, so "costs $5 and the upgrade is $10" rendered "5 and the upgrade
+  is" as italic maths variables until dollars followed by a digit were
+  escaped. Import it via `LazyMarkdown` - loading KaTeX eagerly put ~400KB on
+  every page including the sign-in form.
 - On the task page the result card is aligned to the thought stream with
   `lg:h-0 lg:min-h-full` on the right column, not by a fixed height. Telling
   a card to "fill the remaining space" in a column that is itself sized by

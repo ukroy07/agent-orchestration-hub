@@ -7,7 +7,7 @@ import AgentFlowCanvas from '../components/agents/AgentFlowCanvas'
 import ThoughtStream from '../components/agents/ThoughtStream'
 import OverridePanel from '../components/agents/OverridePanel'
 import ResultModal from '../components/tasks/ResultModal'
-import Markdown from '../components/ui/Markdown'
+import Markdown from '../components/ui/LazyMarkdown'
 import { Card, Badge } from '../components/ui/primitives'
 
 const STATUS_TONE = { pending: 'neutral', running: 'running', completed: 'success', failed: 'danger' }
@@ -18,22 +18,39 @@ export default function TaskView() {
   const { sendOverride, isConnected } = useAgentStream(taskId)
   const [resultOpen, setResultOpen] = useState(false)
   const previewRef = useRef(null)
+  const contentRef = useRef(null)
   const [truncated, setTruncated] = useState(false)
 
-  // Only offer "view more" when there is actually more to see - a two-line
-  // result with a fade and a button under it looks broken. Measured after
+  // Only offer "show more" when there is actually more to see - a two-line
+  // result with a fade and a pill under it looks broken. Measured after
   // layout rather than guessed from string length, since wrapping depends on
   // the column width.
   useLayoutEffect(() => {
-    const el = previewRef.current
-    if (!el) { setTruncated(false); return undefined }
-    const check = () => setTruncated(el.scrollHeight > el.clientHeight + 1)
+    const box = previewRef.current
+    if (!box) { setTruncated(false); return undefined }
+    const check = () => setTruncated(box.scrollHeight > box.clientHeight + 1)
     check()
-    // Re-check on resize: a result that fits on a wide screen can overflow
-    // once the column narrows.
+
+    // Two observers, because they cover different failure modes.
+    //
+    // MutationObserver handles the lazy markdown renderer. The first
+    // measurement above runs against a Suspense placeholder, so it always
+    // says "not truncated"; the real content arrives later and has to be
+    // re-measured. Mutation callbacks are delivered as microtasks, so this
+    // fires as soon as the subtree is replaced.
+    //
+    // ResizeObserver handles the column changing width - a result that fits
+    // on a wide screen can overflow once it narrows. Note it is pointed at
+    // the CONTENT as well as the box: the box is height-capped, so it stops
+    // resizing at precisely the moment content grows past it.
+    const mo = new MutationObserver(check)
+    mo.observe(box, { childList: true, subtree: true, characterData: true })
+
     const ro = new ResizeObserver(check)
-    ro.observe(el)
-    return () => ro.disconnect()
+    ro.observe(box)
+    if (contentRef.current) ro.observe(contentRef.current)
+
+    return () => { mo.disconnect(); ro.disconnect() }
   }, [currentTask?.result])
 
   useEffect(() => {
@@ -122,7 +139,9 @@ export default function TaskView() {
                   truncated ? 'lg:max-h-none lg:min-h-0 lg:flex-1' : ''
                 }`}
               >
-                <Markdown>{currentTask.result}</Markdown>
+                <div ref={contentRef}>
+                  <Markdown>{currentTask.result}</Markdown>
+                </div>
 
                 {/* The affordance sits *on* the fade rather than in a
                     full-width bar below it: the text visibly runs out under a
