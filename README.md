@@ -14,9 +14,16 @@ open to human override mid-run.
 [![Tailwind](https://img.shields.io/badge/Tailwind-3.4-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
+</div>
+
+https://github.com/user-attachments/assets/00ec4022-46bd-435c-839e-b27b30b51094
+
+<details>
+<summary>Static screenshot (if the video does not play on your client)</summary>
+
 <img src="docs/screenshot.png" alt="AgentHub task view - the collaboration graph with Coder and Critic complete, the live thought stream, and a scored result" width="100%">
 
-</div>
+</details>
 
 ---
 
